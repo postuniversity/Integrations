@@ -99,6 +99,9 @@ namespace OffBoardingOnBoarding.Data
         private bool RunReport(string filefolderformattted, string sqlstringformatted)
         {
             bool successfulRun;
+            if (!Directory.Exists(FileFolder))
+                Directory.CreateDirectory(FileFolder);
+
             using (FileStream fs = new FileStream(filefolderformattted, FileMode.CreateNew, FileAccess.ReadWrite))
             {
                 using (StreamWriter sw = new StreamWriter(fs))

@@ -39,11 +39,9 @@ namespace OffBoardingOnBoarding.Lib
             {
                 ReportFromOdata = odataQuery;
                 ReportFromSQL = sqlQuery;
-                //get appconfig settings
-                DataSource = ConfigurationManager.AppSettings["Query"].ToString().ToUpper();
-                DestinationFolder = ConfigurationManager.AppSettings["FileFolder"].ToString();              
-            }
-
+                DataSource = ConfigurationManager.AppSettings["DataSourceKey"];
+        }
+     
             /// <summary>
             /// 
             /// </summary>
@@ -58,18 +56,10 @@ namespace OffBoardingOnBoarding.Lib
             /// </summary>
             public void Generate()
             {
-                //Create Destination Folder in case not exists
-                if (!Directory.Exists(DestinationFolder))
-                    Directory.CreateDirectory(DestinationFolder);
-
                 //Generate csv file using Odata query
                 var status = (DataSource == ODATAQUERY ? ReportFromOdata.Generate() : ReportFromSQL.Generate());
                 //ensure file generated with success status(0), error = -1
-                if (status == -1)
-                {
-                    //log unsuccessful emessage
-                    //rollback lastsuccessful runtime
-                }
+               
                 //Log successfull message
             }
         }    
