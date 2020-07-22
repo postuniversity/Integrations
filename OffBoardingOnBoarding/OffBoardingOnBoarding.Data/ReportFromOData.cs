@@ -29,7 +29,6 @@ namespace OffBoardingOnBoarding.Data
             FileFolder = ConfigurationManager.AppSettings["FileFolder"].ToString();
             FileName = ConfigurationManager.AppSettings["FileName"].ToString();
             Delimeter = ConfigurationManager.AppSettings["Delimiter"].ToString();
-
         }
         /// <summary>
         /// Generate Student Status report from OData query

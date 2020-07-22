@@ -55,12 +55,8 @@ namespace OffBoardingOnBoarding.Lib
             /// 
             /// </summary>
             public void Generate()
-            {
-                //Generate csv file using Odata query
-                var status = (DataSource == ODATAQUERY ? ReportFromOdata.Generate() : ReportFromSQL.Generate());
-                //ensure file generated with success status(0), error = -1
-               
-                //Log successfull message
+            {               
+                var status = (DataSource == ODATAQUERY ? ReportFromOdata.Generate() : ReportFromSQL.Generate());                
             }
         }    
 }

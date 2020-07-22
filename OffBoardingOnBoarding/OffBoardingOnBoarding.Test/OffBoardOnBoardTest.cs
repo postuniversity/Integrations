@@ -5,7 +5,7 @@ using OffBoardingOnBoarding.Lib;
 namespace OffBoardingOnBoarding.Test
 {
     [TestClass]
-    public class UnitTest1
+    public class OffBoardOnBoardTest
     {
         [TestMethod]
         public void TestMethod1()

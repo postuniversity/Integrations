@@ -41,7 +41,7 @@ namespace OffBoardingOnBoarding.Data
         /// </summary>
         public ReportFromSQL()
         {
-            ConnectionString = ConfigurationManager.ConnectionStrings["ConnectionString"].ToString();
+            ConnectionString = ConfigurationManager.ConnectionStrings["SQLConnectionString"].ToString();
             FileFolder = ConfigurationManager.AppSettings["FileFolder"].ToString();
             FileName = ConfigurationManager.AppSettings["FileName"].ToString();
             SqlQUery = ConfigurationManager.AppSettings["SqlQuery"].ToString();
@@ -60,7 +60,6 @@ namespace OffBoardingOnBoarding.Data
             var sqlFormattedSuccessfulRunTime = successfulRunTime.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.CreateSpecificCulture("en-US"));
             var filefolderformattted = String.Format(FileFolder + FileName, successfulRunTime.ToString("yyyyMMddHHmmss"));
             var sqlstringformatted = string.Format(SqlQUery, sqlFormattedSuccessfulRunTime);
-
             try
             {
                 //Run to Generate Report
@@ -109,34 +108,31 @@ namespace OffBoardingOnBoarding.Data
                     //Connecting to the server
                     using (SqlConnection con = new SqlConnection(ConnectionString))
                     {
+                        con.Open();
                         //Get the SQL query
-                        using (SqlCommand cmd = new SqlCommand(sqlstringformatted, con))
+                        SqlCommand cmd = new SqlCommand(sqlstringformatted, con);
+                        string fileHeader = string.Empty;
+                        
+                        //Used datareader to execute the query
+                        SqlDataReader reader = cmd.ExecuteReader();
+                        while (reader.Read())
                         {
-                            con.Open();
-                            cmd.CommandType = CommandType.Text;
-                            string fileHeader = string.Empty;
-
-                            //Used datareader to execute the query
-                            using (SqlDataReader reader = cmd.ExecuteReader())
+                            //write headers
+                            for (int i = 0; i < reader.FieldCount; i++)
                             {
-                                //write headers
-                                for (int i = 0; i < reader.FieldCount; i++)
-                                {
-                                    fileHeader = fileHeader + reader.GetName(i) + Delimeter;
-                                }
-                                fileHeader = fileHeader.Remove(fileHeader.Length - 1, 1) + Environment.NewLine;
-                                sw.Write(fileHeader);
-
-                                //write Data
-                                SaveReport(sw, reader);
+                                fileHeader = fileHeader + reader.GetName(i) + Delimeter;
                             }
-                            con.Close();
-                            successfulRun = true;
-                        }
+
+                            fileHeader = fileHeader.Remove(fileHeader.Length - 1, 1) + Environment.NewLine;
+
+                            sw.Write(fileHeader);
+                            //write Data
+                            SaveReport(sw, reader);                            
+                        }                        
                     }
+                    successfulRun = true;
                 }
             }
-
             return successfulRun;
         }
 
@@ -163,7 +159,6 @@ namespace OffBoardingOnBoarding.Data
                     else
                         fileData = fileData + reader.GetValue(i) + Delimeter;
                 }
-
                 //Write every row by removing last delimiter and move to next line
                 fileData = fileData.Remove(fileData.Length - 1, 1) + Environment.NewLine;
                 sw.Write(fileData);
@@ -178,13 +173,14 @@ namespace OffBoardingOnBoarding.Data
         {
             using (SqlConnection con = new SqlConnection(ConnectionString))
             {
-                using (SqlCommand cmd = new SqlCommand(UpdateSuccessfulRunTimeQueryformat, con))
-                {
-                    con.Open();
-                    cmd.CommandType = CommandType.Text;
-                    SqlDataReader reader = cmd.ExecuteReader();
-                    //log.Message("UpdateSuccessfulRunTime", "Updated Successful Runtime in table", "Info", "", null);
-                }
+                SqlCommand cmd = new SqlCommand(UpdateSuccessfulRunTimeQueryformat, con);
+
+                cmd.Connection.Open();
+                //update field
+                cmd.ExecuteNonQuery();
+                //cmd.CommandType = CommandType.Text;
+                //SqlDataReader reader = cmd.ExecuteReader();
+                //log.Message("UpdateSuccessfulRunTime", "Updated Successful Runtime in table", "Info", "", null);
             }
         }
     }
