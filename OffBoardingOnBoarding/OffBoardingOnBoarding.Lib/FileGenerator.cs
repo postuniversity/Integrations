@@ -57,6 +57,7 @@ namespace OffBoardingOnBoarding.Lib
             public void Generate()
             {               
                 var status = (DataSource == ODATAQUERY ? ReportFromOdata.Generate() : ReportFromSQL.Generate());                
+              
             }
         }    
 }
