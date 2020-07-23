@@ -28,9 +28,11 @@ namespace OffBoardingOnBoarding.Data
         public string Delimeter { get; set; }
 
 
+        /// <summary>
+        /// 
+        /// </summary>
         public ReportFromOData()
-        {
-            infoLogger.Info("Get OData Config Values...");
+        {            
             CNSApiKey = ConfigurationManager.AppSettings["CNSApiKey"].ToString();
             ODataQueryURL = ConfigurationManager.AppSettings["OdataQuery"].ToString();
             FileFolder = ConfigurationManager.AppSettings["FileFolder"].ToString();

@@ -41,7 +41,7 @@ namespace OffBoardingOnBoarding.Lib
             ReportFromOdata = odataQuery;
             ReportFromSQL = sqlQuery;
             DataSource = ConfigurationManager.AppSettings["DataSourceKey"];
-            infoLogger.Info(string.Format("DataSource - {0}",DataSource));
+            
         }
         /// <summary>
         /// 
@@ -56,6 +56,7 @@ namespace OffBoardingOnBoarding.Lib
         /// </summary>
         public void Generate()
         {
+            infoLogger.Info(string.Format("Report being genereted from : {0}", DataSource));
             var status = (DataSource == ODATAQUERY ? ReportFromOdata.Generate() : ReportFromSQL.Generate());
 
         }

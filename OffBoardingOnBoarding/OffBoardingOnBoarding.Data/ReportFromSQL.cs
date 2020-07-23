@@ -45,7 +45,7 @@ namespace OffBoardingOnBoarding.Data
         /// </summary>
         public ReportFromSQL()
         {
-            infoLogger.Info("Get Sql Config Values...");
+            //infoLogger.Info("Get Sql Config Values...");
             ConnectionString = ConfigurationManager.ConnectionStrings["SQLConnectionString"].ToString();
             FileFolder = ConfigurationManager.AppSettings["FileFolder"].ToString();
             FileName = ConfigurationManager.AppSettings["FileName"].ToString();
@@ -60,26 +60,27 @@ namespace OffBoardingOnBoarding.Data
         /// <returns></returns>
         public int Generate()
         {
-            bool successfulRun = false;
+            bool successfulRun;
             var successfulRunTime = DateTime.Now;
             var sqlFormattedSuccessfulRunTime = successfulRunTime.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.CreateSpecificCulture("en-US"));
-            var filefolderformattted = String.Format(FileFolder + FileName, successfulRunTime.ToString("yyyyMMddHHmmss"));
+            var filefolderformattted = String.Format(FileFolder + FileName, successfulRunTime.ToString("yyyyMMddHHmmss", CultureInfo.CreateSpecificCulture("en-US")));
             var sqlstringformatted = string.Format(SqlQUery, sqlFormattedSuccessfulRunTime);
             try
             {
-                infoLogger.Info("Start file generation using Sql query...");
+                infoLogger.Info(" Generate using Sql query started!");
                 //Run to Generate Report
                 successfulRun = RunReport(filefolderformattted, sqlstringformatted);
                 if (successfulRun == true)
                 {
                     UpdateSuccessfulRun(sqlFormattedSuccessfulRunTime);
                 }
-                infoLogger.Info("End file generation using Sql query...");
+                //infoLogger.Info("End file generation using Sql query...");
+                infoLogger.Info(" Generate using Sql query completed!");
                 return 0;
             }
             catch (Exception ex)
             {
-                errorLogger.Info(String.Format("{0} -INNER EXCEPTION: {1}", ex, ex.InnerException));
+                errorLogger.Error(String.Format("{0} -INNER EXCEPTION: {1}", ex, ex.InnerException));
                 return -1;
             }
         }
@@ -103,6 +104,7 @@ namespace OffBoardingOnBoarding.Data
         /// <returns></returns>
         private bool RunReport(string filefolderformattted, string sqlstringformatted)
         {
+            infoLogger.Info(" RunReport using Sql started!");
             bool successfulRun = false;
             try
             {
@@ -139,8 +141,8 @@ namespace OffBoardingOnBoarding.Data
 
                         }
                         successfulRun = true;
-                        infoLogger.Info("Is Scuusessful Run? " + successfulRun.ToString());
-
+                        infoLogger.Info("Is Successful Run? " + successfulRun.ToString());
+                        infoLogger.Info(" RunReport using Sql completed!");
                     }
                 }
             }
@@ -161,7 +163,7 @@ namespace OffBoardingOnBoarding.Data
         {
             try
             {
-                infoLogger.Info("Start saving report...");
+                infoLogger.Info(" Save Report using Sql started!");
 
                 while (reader.Read())
                 {
@@ -182,14 +184,13 @@ namespace OffBoardingOnBoarding.Data
                     //Write every row by removing last delimiter and move to next line
                     fileData = fileData.Remove(fileData.Length - 1, 1) + Environment.NewLine;
                     sw.Write(fileData);
+                    infoLogger.Info(" Save Report using Sql completed!");
                 }
             }
             catch (Exception ex)
             {
                 errorLogger.Info(String.Format("{0} -INNER EXCEPTION: {1}", ex, ex.InnerException));
-            }
-
-            infoLogger.Info("Report saved...");
+            }            
         }
 
         /// <summary>
@@ -200,6 +201,7 @@ namespace OffBoardingOnBoarding.Data
         {
             try
             {
+                infoLogger.Info(" UpdateSuccessfulRunTime started!");
                 using (SqlConnection con = new SqlConnection(ConnectionString))
                 {
                     SqlCommand cmd = new SqlCommand(UpdateSuccessfulRunTimeQueryformat, con);
@@ -208,7 +210,7 @@ namespace OffBoardingOnBoarding.Data
                     //update field
                     cmd.ExecuteNonQuery();
 
-                    infoLogger.Info("Updated Successful Runtime in table...");
+                    infoLogger.Info(" UpdateSuccessfulRunTime completed!");
                 }
             }
             catch (Exception ex)
