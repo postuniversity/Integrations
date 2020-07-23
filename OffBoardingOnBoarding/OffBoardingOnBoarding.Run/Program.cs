@@ -1,20 +1,25 @@
 ﻿using OffBoardingOnBoarding.Data;
 using OffBoardingOnBoarding.Lib;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using log4net;
 
 namespace OffBoardingOnBoardingProcess
 {
     class Program
     {
+        //Declaring logger
+        private static readonly ILog infoLogger = LogManager.GetLogger("InfoLogFile");
+        
         static void Main(string[] args)
         {
-            FileGenerator f = new FileGenerator(new ReportFromOData(), new ReportFromSQL());
-            f.Generate();
-            Console.WriteLine("Completed");
+            //Init log
+            log4net.Config.XmlConfigurator.Configure();
+            infoLogger.Info("Start OffBoarding OnBoarding Process.");
+
+            FileGenerator fileGenerator = new FileGenerator(new ReportFromOData(), new ReportFromSQL());
+            fileGenerator.Generate();
+
+            infoLogger.Info("End OffBoarding OnBoarding Process.");
         }
     }
 }

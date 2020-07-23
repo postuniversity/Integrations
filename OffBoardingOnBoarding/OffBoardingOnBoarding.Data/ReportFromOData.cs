@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using log4net;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -13,6 +14,10 @@ namespace OffBoardingOnBoarding.Data
     /// </summary>
     public class ReportFromOData : IOData
     {
+        //Declaring logger
+        public static readonly ILog infoLogger = LogManager.GetLogger("log4net-default-repository", "InfoLogFile");
+        public static readonly ILog errorLogger = LogManager.GetLogger("log4net-default-repository", "ErrorLogFile");
+
         public string CNSApiKey { get; set; }
         public string ODataQueryURL { get; set; }
 
@@ -21,9 +26,11 @@ namespace OffBoardingOnBoarding.Data
         public string FileName { get; set; }
 
         public string Delimeter { get; set; }
+
+
         public ReportFromOData()
         {
-            //Log.info("Generate started in OData class...");
+            infoLogger.Info("Get OData Config Values...");
             CNSApiKey = ConfigurationManager.AppSettings["CNSApiKey"].ToString();
             ODataQueryURL = ConfigurationManager.AppSettings["OdataQuery"].ToString();
             FileFolder = ConfigurationManager.AppSettings["FileFolder"].ToString();
@@ -35,28 +42,24 @@ namespace OffBoardingOnBoarding.Data
         /// </summary>
         /// <returns></returns>
         public int Generate()
-        {          
+        {
             try
             {
                 var odataResult = string.Empty;
                 //http call to get odata query
                 odataResult = GetHttpResponse(CNSApiKey, ODataQueryURL);
-                //Log.info("HTTP Response retrieved in  OData class...");
+                infoLogger.Info("HTTP Response retrieved in  OData class...");
                 //Get all root values in dictionary as results[Deserializing json string] 
                 var jsonData = getDataFromJSON(odataResult);
-                ////Log.info("Http response parsed into JSON in OData class...");
+                infoLogger.Info("Http response parsed into JSON in OData class...");
                 //Write the dictionary data to file
                 SaveReport(jsonData);
-                //Log.info("Save report completed in OData class...");
-                //log.Message("GenerateFileFromOdataQuery", "File Generated Successfully", "Info", "", null);
                 return 0;
             }
             catch (Exception ex)
             {
-                ////Log.info("Exception ex in OData class...");
+                errorLogger.Info(String.Format("{0} -INNER EXCEPTION: {1}", ex, ex.InnerException));
                 return -1;
-                //throw ;
-                //log.Message("GenerateFileFromOdataQuery", "", "Error", "", ex);                
             }
         }
 
@@ -73,7 +76,7 @@ namespace OffBoardingOnBoarding.Data
             //add apikey to headers
             client.DefaultRequestHeaders.Add("ApiKey", CNSApikey);
             //Get response from Odata Query
-            //Log.info("Generate started in GetHttpResponse of  OData class...");
+            infoLogger.Info("Generate started in GetHttpResponse of  OData class...");
             var httpResponse = client.GetAsync(OdataQueryURl).Result;
             httpResponse.EnsureSuccessStatusCode();
             //Output from OdataQuery
@@ -86,47 +89,54 @@ namespace OffBoardingOnBoarding.Data
         /// <param name="results"></param>
         private void SaveReport(Dictionary<string, string> results)
         {
-            if (!Directory.Exists(FileFolder))
-                Directory.CreateDirectory(FileFolder);
-
-            //Log.info("SaveReport started in OData class...");
-            String fileHeader = string.Empty;
-            String fileData = string.Empty;
-            int j = 0;
-            string fileFormatted = FileFolder + FileName;
-
-            using (FileStream fs = new FileStream(String.Format(fileFormatted, DateTime.Now.ToString("yyyyMMddHHmmss")), FileMode.CreateNew, FileAccess.ReadWrite))
+            try
             {
-                using (StreamWriter sw = new StreamWriter(fs))
+                if (!Directory.Exists(FileFolder))
+                    Directory.CreateDirectory(FileFolder);
+
+                infoLogger.Info("SaveReport started in OData class...");
+                String fileHeader = string.Empty;
+                String fileData = string.Empty;
+                int j = 0;
+                string fileFormatted = FileFolder + FileName;
+
+                using (FileStream fs = new FileStream(String.Format(fileFormatted, DateTime.Now.ToString("yyyyMMddHHmmss")), FileMode.CreateNew, FileAccess.ReadWrite))
                 {
-                    //Header(1st row)
-                    foreach (string headers in results.Keys.Where(headers => headers.Contains("value[0]")))
+                    using (StreamWriter sw = new StreamWriter(fs))
                     {
-                        fileHeader = fileHeader + Delimeter + headers.Substring(9);
+                        //Header(1st row)
+                        foreach (string headers in results.Keys.Where(headers => headers.Contains("value[0]")))
+                        {
+                            fileHeader = fileHeader + Delimeter + headers.Substring(9);
+                        }
+                        fileHeader = fileHeader.Substring(1) + Environment.NewLine;
+                        sw.Write(fileHeader);
+                        //Values
+                        foreach (KeyValuePair<string, string> result in results)
+                        {
+                            if (result.Key == results.Keys.First())
+                            {
+                                fileData = result.Value;
+                            }
+                            else if (result.Key.Contains(String.Format("value[{0}]", j)))
+                            {
+                                fileData = fileData + Delimeter + result.Value.ToString();
+                            }
+                            else
+                            {
+                                fileData = fileData + Environment.NewLine + result.Value.ToString();
+                                j++;
+                            }
+                        }
+                        sw.Write(fileData);
                     }
-                    fileHeader = fileHeader.Substring(1) + Environment.NewLine;
-                    sw.Write(fileHeader);
-                    //Values
-                    foreach (KeyValuePair<string, string> result in results)
-                    {
-                        if (result.Key == results.Keys.First())
-                        {
-                            fileData = result.Value;
-                        }
-                        else if (result.Key.Contains(String.Format("value[{0}]", j)))
-                        {
-                            fileData = fileData + Delimeter + result.Value.ToString();
-                        }
-                        else
-                        {
-                            fileData = fileData + Environment.NewLine + result.Value.ToString();
-                            j++;
-                        }
-                    }
-                    sw.Write(fileData);
                 }
+                infoLogger.Info("Save report completed in OData class...");
             }
-            //Log.info("SaveReport completed in OData class...");
+            catch (Exception ex)
+            {
+                errorLogger.Info(String.Format("{0} -INNER EXCEPTION: {1}", ex, ex.InnerException));
+            }
         }
 
         /// <summary>
@@ -136,7 +146,7 @@ namespace OffBoardingOnBoarding.Data
         /// <returns></returns>
         private static Dictionary<string, string> getDataFromJSON(string odataResult)
         {
-            //Log.info("GetDataFromJSON started in OData class...");
+            infoLogger.Info("GetDataFromJSON started in OData class...");
             JObject jsonObject = JObject.Parse(odataResult);
 
             IEnumerable<JToken> jTokens = jsonObject.Descendants().Where(p => p.Count() == 0);
@@ -149,7 +159,7 @@ namespace OffBoardingOnBoarding.Data
             });
             //remove first value which is not usefule @odatacontext....
             results.Remove(results.Keys.First());
-            //Log.info("GetDataFromJSON completed in OData class...");
+            infoLogger.Info("GetDataFromJSON completed in OData class...");
             return results;
         }
     }

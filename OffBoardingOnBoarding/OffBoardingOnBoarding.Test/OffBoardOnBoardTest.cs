@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OffBoardingOnBoarding.Data;
 using OffBoardingOnBoarding.Lib;
+using log4net;
 
 namespace OffBoardingOnBoarding.Test
 {
