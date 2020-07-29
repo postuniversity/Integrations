@@ -184,8 +184,9 @@ namespace OffBoardingOnBoarding.Data
                     //Write every row by removing last delimiter and move to next line
                     fileData = fileData.Remove(fileData.Length - 1, 1) + Environment.NewLine;
                     sw.Write(fileData);
-                    infoLogger.Info(" Save Report using Sql completed!");
                 }
+
+                infoLogger.Info(" Save Report using Sql completed!");
             }
             catch (Exception ex)
             {
