@@ -67,16 +67,18 @@ namespace OffBoardingOnBoarding.Data
             var sqlstringformatted = string.Format(SqlQUery, sqlFormattedSuccessfulRunTime);
             try
             {
-                infoLogger.Info(" Generate using Sql query started!");
+                infoLogger.Info(string.Format(" Started Generating report using Sql query {0}",sqlstringformatted));
                 //Run to Generate Report
                 successfulRun = RunReport(filefolderformattted, sqlstringformatted);
                 if (successfulRun == true)
                 {
                     UpdateSuccessfulRun(sqlFormattedSuccessfulRunTime);
+                    //infoLogger.Info("End file generation using Sql query...");
+                    infoLogger.Info(" Generate using Sql query completed!");
+                    return 0;
                 }
-                //infoLogger.Info("End file generation using Sql query...");
-                infoLogger.Info(" Generate using Sql query completed!");
-                return 0;
+                infoLogger.Info(" Generate report using Sql query completed with errors!");
+                return -1;
             }
             catch (Exception ex)
             {
@@ -93,6 +95,7 @@ namespace OffBoardingOnBoarding.Data
         {
             var UpdateSuccessfulRunTimeQueryformat = string.Format(UpdateSuccessfulRunTimeQuery, sqlFormattedSuccessfulRunTime);
             //Update SuccessfulRunTime in Table
+            infoLogger.Info(string.Format("Updating successful runtim : {0}",UpdateSuccessfulRunTimeQueryformat));
             UpdateSuccessfulRunTime(UpdateSuccessfulRunTimeQueryformat);
         }
 
@@ -163,7 +166,7 @@ namespace OffBoardingOnBoarding.Data
         {
             try
             {
-                infoLogger.Info(" Save Report using Sql started!");
+                infoLogger.Info(string.Format(" Save Report using Sql started, #records in Reader : {0}", reader.FieldCount));
 
                 while (reader.Read())
                 {
