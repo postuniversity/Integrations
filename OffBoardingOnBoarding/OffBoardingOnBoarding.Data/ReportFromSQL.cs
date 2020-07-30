@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Data.SqlClient;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 
 namespace OffBoardingOnBoarding.Data
 {
@@ -31,7 +32,7 @@ namespace OffBoardingOnBoarding.Data
         /// <summary>
         /// 
         /// </summary>
-        public string SqlQUery { get; set; }
+        public string ReportQuery { get; set; }
         /// <summary>
         /// /
         /// </summary>
@@ -39,19 +40,29 @@ namespace OffBoardingOnBoarding.Data
         /// <summary>
         /// /
         /// </summary>
-        public string UpdateSuccessfulRunTimeQuery { get; set; }
+        public string DataSource { get; set; }
+        /// <summary>
+        /// /
+        /// </summary>
+        public string PreviousSuccessfulRunTimeQuery { get; set; }
+        /// <summary>
+        /// /
+        /// </summary>
+        public string InsertSuccessfulRunTimeQuery { get; set; }
         /// <summary>
         /// 
         /// </summary>
         public ReportFromSQL()
         {
             //infoLogger.Info("Get Sql Config Values...");
+            DataSource = ConfigurationManager.AppSettings["DataSourceKey"].ToString();
             ConnectionString = ConfigurationManager.ConnectionStrings["SQLConnectionString"].ToString();
             FileFolder = ConfigurationManager.AppSettings["FileFolder"].ToString();
             FileName = ConfigurationManager.AppSettings["FileName"].ToString();
-            SqlQUery = ConfigurationManager.AppSettings["SqlQuery"].ToString();
+            ReportQuery = ConfigurationManager.AppSettings["ReportQuery_Sql"].ToString();
             Delimeter = ConfigurationManager.AppSettings["Delimiter"].ToString();
-            UpdateSuccessfulRunTimeQuery = ConfigurationManager.AppSettings["UpdateSuccessfulRunTimeQuery"].ToString();
+            PreviousSuccessfulRunTimeQuery = ConfigurationManager.AppSettings["PreviousSuccessfulRunTimeQuery"].ToString();
+            InsertSuccessfulRunTimeQuery = ConfigurationManager.AppSettings["InsertSuccessfulRunTimeQuery"].ToString();
         }
 
         /// <summary>
@@ -64,19 +75,22 @@ namespace OffBoardingOnBoarding.Data
             var successfulRunTime = DateTime.Now;
             var sqlFormattedSuccessfulRunTime = successfulRunTime.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.CreateSpecificCulture("en-US"));
             var filefolderformattted = String.Format(FileFolder + FileName, successfulRunTime.ToString("yyyyMMddHHmmss", CultureInfo.CreateSpecificCulture("en-US")));
-            var sqlstringformatted = string.Format(SqlQUery, sqlFormattedSuccessfulRunTime);
+            var reportQuery = GetQuery(ReportQuery);
+            var previousSuccessfulRuntimeQuery = GetQuery(PreviousSuccessfulRunTimeQuery);
             try
             {
-                infoLogger.Info(string.Format(" Started Generating report using Sql query {0}",sqlstringformatted));
+                infoLogger.Info(string.Format(" Started Generating report using Sql query {0}", reportQuery));
                 //Run to Generate Report
-                successfulRun = RunReport(filefolderformattted, sqlstringformatted);
+                successfulRun = RunReport(filefolderformattted, reportQuery);
+                var previousSuccessfulRuntime=GetPreviousSuccessfulRuntime(previousSuccessfulRuntimeQuery, sqlFormattedSuccessfulRunTime);
                 if (successfulRun == true)
                 {
-                    UpdateSuccessfulRun(sqlFormattedSuccessfulRunTime);
+                    InsertSuccessfulRun(sqlFormattedSuccessfulRunTime, DataSource, "", reportQuery, "OK", previousSuccessfulRuntime, sqlFormattedSuccessfulRunTime);
                     //infoLogger.Info("End file generation using Sql query...");
                     infoLogger.Info(" Generate using Sql query completed!");
                     return 0;
                 }
+                InsertSuccessfulRun(sqlFormattedSuccessfulRunTime, DataSource,"", reportQuery,"Error", previousSuccessfulRuntime, previousSuccessfulRuntime);
                 infoLogger.Info(" Generate report using Sql query completed with errors!");
                 return -1;
             }
@@ -88,15 +102,32 @@ namespace OffBoardingOnBoarding.Data
         }
 
         /// <summary>
-        /// Update Successful runtime in customer schema si_configurations
+        /// Insert Successful runtime in customer schema
         /// </summary>
-        /// <param name="sqlFormattedSuccessfulRunTime"></param>
-        private void UpdateSuccessfulRun(string sqlFormattedSuccessfulRunTime)
+        private void InsertSuccessfulRun(string RunDate,string ReportSource,string ODataQuery,string SqlQuery,string Status, string PreviousSuccessfulRunTime,string NextSuccessfulRunTime)
         {
-            var UpdateSuccessfulRunTimeQueryformat = string.Format(UpdateSuccessfulRunTimeQuery, sqlFormattedSuccessfulRunTime);
-            //Update SuccessfulRunTime in Table
-            infoLogger.Info(string.Format("Updating successful runtim : {0}",UpdateSuccessfulRunTimeQueryformat));
-            UpdateSuccessfulRunTime(UpdateSuccessfulRunTimeQueryformat);
+             //Insert SuccessfulRunTime in Table
+            infoLogger.Info("Inserting successful runtime");
+            try
+            {
+                var insertSuccessfulRunTimeQuery = GetQuery(InsertSuccessfulRunTimeQuery);
+                string formattedInsertQuery = string.Format(insertSuccessfulRunTimeQuery, RunDate, ReportSource, ODataQuery, SqlQuery, Status, PreviousSuccessfulRunTime, NextSuccessfulRunTime);
+                infoLogger.Info(string.Format(" Insert SuccessfulRunTime started - {0}!", formattedInsertQuery));
+                using (SqlConnection con = new SqlConnection(ConnectionString))
+                {
+                    SqlCommand cmd = new SqlCommand(formattedInsertQuery, con);
+
+                    cmd.Connection.Open();
+                    //update field
+                    cmd.ExecuteNonQuery();
+
+                    infoLogger.Info(" Insert SuccessfulRunTime completed!");
+                }
+            }
+            catch (Exception ex)
+            {
+                errorLogger.Info(String.Format("{0} -INNER EXCEPTION: {1}", ex, ex.InnerException));
+            }
         }
 
         /// <summary>
@@ -105,7 +136,7 @@ namespace OffBoardingOnBoarding.Data
         /// <param name="filefolderformattted"></param>
         /// <param name="sqlstringformatted"></param>
         /// <returns></returns>
-        private bool RunReport(string filefolderformattted, string sqlstringformatted)
+        private bool RunReport(string filefolderformattted, string reportQuery)
         {
             infoLogger.Info(" RunReport using Sql started!");
             bool successfulRun = false;
@@ -124,7 +155,7 @@ namespace OffBoardingOnBoarding.Data
                         {
                             con.Open();
                             //Get the SQL query
-                            SqlCommand cmd = new SqlCommand(sqlstringformatted, con);
+                            SqlCommand cmd = new SqlCommand(reportQuery, con);
                             string fileHeader = string.Empty;
 
                             //Used datareader to execute the query
@@ -166,7 +197,7 @@ namespace OffBoardingOnBoarding.Data
         {
             try
             {
-                infoLogger.Info(string.Format(" Save Report using Sql started, #records in Reader : {0}", reader.FieldCount));
+                infoLogger.Info(string.Format(" Save Report using Sql started, #records in Reader : {0}", reader.Cast<object>().Count()));
 
                 while (reader.Read())
                 {
@@ -197,30 +228,66 @@ namespace OffBoardingOnBoarding.Data
             }            
         }
 
+       
         /// <summary>
-        /// Update SuccessfulRunTime in Table
+        /// Update Get Report Query in Table
         /// </summary>
-        /// <param name="UpdateSuccessfulRunTimeQueryformat"></param>
-        private void UpdateSuccessfulRunTime(string UpdateSuccessfulRunTimeQueryformat)
+        private string GetQuery(string configQuery)
         {
+            string query = "";
             try
             {
-                infoLogger.Info(" UpdateSuccessfulRunTime started!");
+                infoLogger.Info("Get Query from Config table started!");
                 using (SqlConnection con = new SqlConnection(ConnectionString))
                 {
-                    SqlCommand cmd = new SqlCommand(UpdateSuccessfulRunTimeQueryformat, con);
+                    SqlCommand cmd = new SqlCommand(configQuery, con);
 
                     cmd.Connection.Open();
-                    //update field
-                    cmd.ExecuteNonQuery();
-
-                    infoLogger.Info(" UpdateSuccessfulRunTime completed!");
+                    //Get Query from customer.si_Configurations table
+                    SqlDataReader reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        query = reader.GetValue(0).ToString();
+                    }
+                    infoLogger.Info("Get Query from Config table completed!");
                 }
             }
             catch (Exception ex)
             {
                 errorLogger.Info(String.Format("{0} -INNER EXCEPTION: {1}", ex, ex.InnerException));
             }
+            return query;
+        }
+        /// <summary>
+        /// Get Previous Successful Runtime
+        /// </summary>
+        private string GetPreviousSuccessfulRuntime(string previousSuccessfulRuntimeQuery, string sqlFormattedSuccessfulRunTime)
+        {
+            string previousSuccessfulRuntime = "";
+            try
+            {
+                infoLogger.Info("Get previousSuccessfulRuntime started!");
+                using (SqlConnection con = new SqlConnection(ConnectionString))
+                {
+                    SqlCommand cmd = new SqlCommand(previousSuccessfulRuntimeQuery, con);
+
+                    cmd.Connection.Open();
+                    //Get Query from customer.si_Configurations table
+                    SqlDataReader reader = cmd.ExecuteReader();
+
+                    while (reader.Read())
+                    {
+                        previousSuccessfulRuntime = Convert.ToDateTime(reader.GetValue(0)).ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.CreateSpecificCulture("en-US"));
+                    }
+                    
+                    infoLogger.Info(string.Format("Get previousSuccessfulRuntime completed!-{0}", previousSuccessfulRuntime));
+                }
+            }
+            catch (Exception ex)
+            {
+                errorLogger.Info(String.Format("{0} -INNER EXCEPTION: {1}", ex, ex.InnerException));
+            }
+            return previousSuccessfulRuntime;
         }
     }
 }

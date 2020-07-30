@@ -43,7 +43,7 @@ namespace OffBoardingOnBoarding.Data
             FileName = ConfigurationManager.AppSettings["FileName"].ToString();
             Delimeter = ConfigurationManager.AppSettings["Delimiter"].ToString();
             ConnectionString = ConfigurationManager.ConnectionStrings["SQLConnectionString"].ToString();
-            UpdateSuccessfulRunTimeQuery = ConfigurationManager.AppSettings["UpdateSuccessfulRunTimeQuery"].ToString();
+            UpdateSuccessfulRunTimeQuery = ConfigurationManager.AppSettings["InsertSuccessfulRunTimeQuery"].ToString();
             GetLastSuccessfulRunTimeQuery = ConfigurationManager.AppSettings["GetLastSuccessfulRunTimeQuery"].ToString();
         }
         /// <summary>
