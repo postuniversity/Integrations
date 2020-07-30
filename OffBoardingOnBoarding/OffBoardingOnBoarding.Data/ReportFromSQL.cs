@@ -85,12 +85,12 @@ namespace OffBoardingOnBoarding.Data
                 var previousSuccessfulRuntime=GetPreviousSuccessfulRuntime(previousSuccessfulRuntimeQuery, sqlFormattedSuccessfulRunTime);
                 if (successfulRun == true)
                 {
-                    InsertSuccessfulRun(sqlFormattedSuccessfulRunTime, DataSource, "", reportQuery, "OK", previousSuccessfulRuntime, sqlFormattedSuccessfulRunTime);
+                    InsertSuccessfulRun(sqlFormattedSuccessfulRunTime, DataSource, "", reportQuery.Replace("'","''"), "OK", previousSuccessfulRuntime, sqlFormattedSuccessfulRunTime);
                     //infoLogger.Info("End file generation using Sql query...");
                     infoLogger.Info(" Generate using Sql query completed!");
                     return 0;
                 }
-                InsertSuccessfulRun(sqlFormattedSuccessfulRunTime, DataSource,"", reportQuery,"Error", previousSuccessfulRuntime, previousSuccessfulRuntime);
+                InsertSuccessfulRun(sqlFormattedSuccessfulRunTime, DataSource,"", reportQuery.Replace("'", "''"), "Error", previousSuccessfulRuntime, previousSuccessfulRuntime);
                 infoLogger.Info(" Generate report using Sql query completed with errors!");
                 return -1;
             }
