@@ -92,6 +92,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\OffBoardingOnBoarding.DAL\OffBoardingOnBoarding.DAL.csproj">
+      <Project>{48D02430-CB38-4FC5-9800-D7A35F4FBFC3}</Project>
+      <Name>OffBoardingOnBoarding.DAL</Name>
+    </ProjectReference>
     <ProjectReference Include="..\OffBoardingOnBoarding.Data\OffBoardingOnBoarding.Data.csproj">
       <Project>{d8d0815d-49f7-4aa1-a84f-cbd462225648}</Project>
       <Name>OffBoardingOnBoarding.Data</Name>

@@ -7,5 +7,10 @@
         /// </summary>
         /// <returns></returns>
         int Generate();
+        int Generatev2();
+        // getstudents()
+        // savereportstatus()
+        // updatereportstatus()
+
     }
 }

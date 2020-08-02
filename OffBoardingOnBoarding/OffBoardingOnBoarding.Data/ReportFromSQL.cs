@@ -1,4 +1,5 @@
 ﻿using log4net;
+using OffBoardingOnBoarding.DAL;
 using System;
 using System.Configuration;
 using System.Data.SqlClient;
@@ -16,6 +17,7 @@ namespace OffBoardingOnBoarding.Data
         //Declaring logger
         public static readonly ILog infoLogger = LogManager.GetLogger("log4net-default-repository", "InfoLogFile");
         public static readonly ILog errorLogger = LogManager.GetLogger("log4net-default-repository", "ErrorLogFile");
+        private static readonly string Okay = "OK";
 
         /// <summary>
         /// 
@@ -44,55 +46,169 @@ namespace OffBoardingOnBoarding.Data
         /// <summary>
         /// /
         /// </summary>
-        public string PreviousSuccessfulRunTimeQuery { get; set; }
+        public string NextRunAvailableFromPreviousRunQuery { get; set; }
         /// <summary>
         /// /
         /// </summary>
-        public string InsertSuccessfulRunTimeQuery { get; set; }
+        public string SaveSuccessfulRunQuery { get; set; }
+        public ISQLDAL Isqldal { get; }
+
         /// <summary>
         /// 
         /// </summary>
-        public ReportFromSQL()
+        public ReportFromSQL( ISQLDAL isqldal)
         {
             //infoLogger.Info("Get Sql Config Values...");
             DataSource = ConfigurationManager.AppSettings["DataSourceKey"].ToString();
             ConnectionString = ConfigurationManager.ConnectionStrings["SQLConnectionString"].ToString();
             FileFolder = ConfigurationManager.AppSettings["FileFolder"].ToString();
             FileName = ConfigurationManager.AppSettings["FileName"].ToString();
-            ReportQuery = ConfigurationManager.AppSettings["ReportQuery_Sql"].ToString();
+            ReportQuery = ConfigurationManager.AppSettings["StudentStatusReportQuery"].ToString();
             Delimeter = ConfigurationManager.AppSettings["Delimiter"].ToString();
-            PreviousSuccessfulRunTimeQuery = ConfigurationManager.AppSettings["PreviousSuccessfulRunTimeQuery"].ToString();
-            InsertSuccessfulRunTimeQuery = ConfigurationManager.AppSettings["InsertSuccessfulRunTimeQuery"].ToString();
+            //latest next runtime (from previous successful run)
+            NextRunAvailableFromPreviousRunQuery = ConfigurationManager.AppSettings["PreviousSuccessfulRunTimeQuery"].ToString();
+            // save successful run time on report generation
+            SaveSuccessfulRunQuery = ConfigurationManager.AppSettings["InsertSuccessfulRunTimeQuery"].ToString();
+            Isqldal = isqldal;
         }
 
         /// <summary>
         /// 
         /// </summary>
         /// <returns></returns>
-        public int Generate()
+
+        public int Generatev2()
         {
-            bool successfulRun;
-            var successfulRunTime = DateTime.Now;
-            var sqlFormattedSuccessfulRunTime = successfulRunTime.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.CreateSpecificCulture("en-US"));
-            var filefolderformattted = String.Format(FileFolder + FileName, successfulRunTime.ToString("yyyyMMddHHmmss", CultureInfo.CreateSpecificCulture("en-US")));
-            var reportQuery = GetQuery(ReportQuery);
-            var previousSuccessfulRuntimeQuery = GetQuery(PreviousSuccessfulRunTimeQuery);
+
+            //save offboardstudent status report inprogress
+            //getstudnets and save report
+            //update offboardstudent status report completed
             try
             {
-                infoLogger.Info(string.Format(" Started Generating report using Sql query {0}", reportQuery));
-                //Run to Generate Report
-                successfulRun = RunReport(filefolderformattted, reportQuery);
-                var previousSuccessfulRuntime=GetPreviousSuccessfulRuntime(previousSuccessfulRuntimeQuery, sqlFormattedSuccessfulRunTime);
-                if (successfulRun == true)
-                {
-                    InsertSuccessfulRun(sqlFormattedSuccessfulRunTime, DataSource, "", reportQuery.Replace("'","''"), "OK", previousSuccessfulRuntime, sqlFormattedSuccessfulRunTime);
-                    //infoLogger.Info("End file generation using Sql query...");
-                    infoLogger.Info(" Generate using Sql query completed!");
+                var reportgenerationtime = DateTime.Now;
+                var filename = String.Format(FileFolder + FileName, reportgenerationtime.ToString("yyyyMMddHHmmss", CultureInfo.CreateSpecificCulture("en-US")));
+                infoLogger.Info("saving OffBoardOnBoardStatusReport");
+                var runId = Isqldal.SaveOffBoardOnBoardStatusReport("sql", DateTime.Now.ToString(), string.Empty, "", "in-progress", string.Empty, 0, string.Empty, string.Empty, 1);
+                infoLogger.Info("saved OffBoardOnBoardStatusReport, runid :" + runId);
+
+                //get count from reader and save
+                //generate and save the report
+                if (runId > 0)
+                {                    
+                    var reportsaved = GenerateReport(filename);
+
+                    if (!reportsaved)
+                    {
+                        Isqldal.UpdateOffBoardOnBoardStatusReport("Error", reportgenerationtime.ToString(), DateTime.Now.ToString(), runId);
+                        errorLogger.Error(String.Format("Something went wrong in saving generating report : RUNID: {0}", runId));
+                        return -1;
+                    }
+                    //update status
+                    Isqldal.UpdateOffBoardOnBoardStatusReport("completed", reportgenerationtime.ToString(), DateTime.Now.ToString(), runId);
                     return 0;
                 }
-                InsertSuccessfulRun(sqlFormattedSuccessfulRunTime, DataSource,"", reportQuery.Replace("'", "''"), "Error", previousSuccessfulRuntime, previousSuccessfulRuntime);
-                infoLogger.Info(" Generate report using Sql query completed with errors!");
+                errorLogger.Error(String.Format("Something went wrong in saving StudentStatusReport: RUNID: {0}",runId));
                 return -1;
+            }
+            catch(Exception ex)
+            {
+                errorLogger.Error(String.Format("Something went wrong in Generatev2: Exception {0}", ex.Message));
+                return -1;
+            }            
+        }
+
+
+        public bool GenerateReport(string filename)
+        {
+            infoLogger.Info("GenerateReport started!");
+            string fileHeader = string.Empty;
+            var fileData = string.Empty;
+
+            try
+            {
+                if (!Directory.Exists(FileFolder))
+                    Directory.CreateDirectory(FileFolder);
+                
+                //get data from DB
+                var reader = Isqldal.GetOffBoardOnBoardStudents();
+
+                if (reader != null)
+                {
+                    using (FileStream fs = new FileStream(filename, FileMode.CreateNew, FileAccess.ReadWrite))
+                    {
+                        using (StreamWriter sw = new StreamWriter(fs))
+                        {
+                            while (reader.Read())
+                            {
+                                for (int i = 0; i < reader.FieldCount; i++)
+                                {
+                                    fileHeader = fileHeader + reader.GetName(i) + Delimeter;
+                                }
+
+                                fileHeader = fileHeader.Remove(fileHeader.Length - 1, 1) + Environment.NewLine;
+                                //******************
+                                sw.Write(fileHeader);
+                                //******************
+                                for (int i = 0; i < reader.FieldCount; i++)
+                                {
+                                    //Check for advanced datatypes
+                                    if (reader.GetFieldType(i) == typeof(Byte[]) && reader.IsDBNull(i) == false)
+                                    {
+                                        byte[] byteArray = (Byte[])reader.GetValue(i);
+                                        string byteString = Convert.ToBase64String(byteArray);
+                                        fileData = fileData + byteString + Delimeter;
+                                    }
+                                    else
+                                        fileData = fileData + reader.GetValue(i) + Delimeter;
+                                }
+                                //Write every row by removing last delimiter and move to next line
+                                fileData = fileData.Remove(fileData.Length - 1, 1) + Environment.NewLine;                                
+                            }
+                            sw.Write(fileData);
+                        }
+                    }
+                    infoLogger.Info("GenerateReport completed!");
+                    return true;
+                }
+                infoLogger.Info("GenerateReport reader has no rows!");
+                return  false;
+            }
+            catch (Exception ex)
+            {
+                errorLogger.Error(String.Format("Something went wrong in GenerateReport: Exception {0}", ex.ToString()));
+                return false;
+            }
+
+        }
+                
+        public int Generate()
+        {
+            bool reportGenerated;
+            //set successfulruntime to current date
+            var successfulRunTime = DateTime.Now;
+            //time in est
+            var sqlFormattedSuccessfulRunTime = successfulRunTime.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.CreateSpecificCulture("en-US"));
+            // add timestamp to file name
+            var filefolderformattted = String.Format(FileFolder + FileName, successfulRunTime.ToString("yyyyMMddHHmmss", CultureInfo.CreateSpecificCulture("en-US")));
+            //fetch students for status report
+            var reportQuery = GetQuery(ReportQuery);
+            //
+            var previousSuccessfulRuntimeQuery = GetQuery(NextRunAvailableFromPreviousRunQuery);
+            try
+            {
+                //log the query being executed
+                infoLogger.Info(string.Format(" Started Generating report using Sql query {0}", reportQuery));
+                //Run to Generate Report
+                reportGenerated = RunReport(filefolderformattted, reportQuery);
+                //
+                var previousSuccessfulRuntime = GetPreviousSuccessfulRuntime(previousSuccessfulRuntimeQuery, sqlFormattedSuccessfulRunTime);
+                //
+                if (reportGenerated)
+                {
+                    //
+                    return SaveLastRunTimeOnSuccess(sqlFormattedSuccessfulRunTime, reportQuery, previousSuccessfulRuntime);
+                }
+                return SaveLastRunTimeOnError(sqlFormattedSuccessfulRunTime, reportQuery, previousSuccessfulRuntime);
             }
             catch (Exception ex)
             {
@@ -102,15 +218,46 @@ namespace OffBoardingOnBoarding.Data
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sqlFormattedSuccessfulRunTime"></param>
+        /// <param name="reportQuery"></param>
+        /// <param name="previousSuccessfulRuntime"></param>
+        /// <returns></returns>
+        private int SaveLastRunTimeOnError(string sqlFormattedSuccessfulRunTime, string reportQuery, string previousSuccessfulRuntime)
+        {
+            //Report Generation Failed, report error , set "NextRunTime to previousruntime", so report generation happens from previous run 
+            InsertSuccessfulRun(sqlFormattedSuccessfulRunTime, DataSource, string.Empty, reportQuery.Replace("'", "''"), "Error", previousSuccessfulRuntime, previousSuccessfulRuntime/*NextSuccessfulRunTime*/);
+            infoLogger.Error(" Generate report using Sql query completed with errors!");
+            return -1;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sqlFormattedSuccessfulRunTime"></param>
+        /// <param name="reportQuery"></param>
+        /// <param name="previousSuccessfulRuntime"></param>
+        /// <returns></returns>
+        private int SaveLastRunTimeOnSuccess(string sqlFormattedSuccessfulRunTime, string reportQuery, string previousSuccessfulRuntime)
+        {
+            //
+            InsertSuccessfulRun(sqlFormattedSuccessfulRunTime, DataSource, string.Empty/* odataquery*/, reportQuery.Replace("'", "''"), "OK", previousSuccessfulRuntime, sqlFormattedSuccessfulRunTime);
+            //infoLogger.Info("End file generation using Sql query...");
+            infoLogger.Info(" Generate using Sql query completed!");
+            return 0;
+        }
+
+        /// <summary>
         /// Insert Successful runtime in customer schema
         /// </summary>
-        private void InsertSuccessfulRun(string RunDate,string ReportSource,string ODataQuery,string SqlQuery,string Status, string PreviousSuccessfulRunTime,string NextSuccessfulRunTime)
+        private void InsertSuccessfulRun(string RunDate, string ReportSource, string ODataQuery, string SqlQuery, string Status, string PreviousSuccessfulRunTime, string NextSuccessfulRunTime)
         {
-             //Insert SuccessfulRunTime in Table
+            //Insert SuccessfulRunTime in Table
             infoLogger.Info("Inserting successful runtime");
             try
             {
-                var insertSuccessfulRunTimeQuery = GetQuery(InsertSuccessfulRunTimeQuery);
+                var insertSuccessfulRunTimeQuery = GetQuery(SaveSuccessfulRunQuery);
                 string formattedInsertQuery = string.Format(insertSuccessfulRunTimeQuery, RunDate, ReportSource, ODataQuery, SqlQuery, Status, PreviousSuccessfulRunTime, NextSuccessfulRunTime);
                 infoLogger.Info(string.Format(" Insert SuccessfulRunTime started - {0}!", formattedInsertQuery));
                 using (SqlConnection con = new SqlConnection(ConnectionString))
@@ -225,19 +372,19 @@ namespace OffBoardingOnBoarding.Data
             catch (Exception ex)
             {
                 errorLogger.Info(String.Format("{0} -INNER EXCEPTION: {1}", ex, ex.InnerException));
-            }            
+            }
         }
 
-       
+
         /// <summary>
         /// Update Get Report Query in Table
         /// </summary>
         private string GetQuery(string configQuery)
         {
-            string query = "";
+            string query = string.Empty;
             try
             {
-                infoLogger.Info("Get Query from Config table started!");
+                infoLogger.Info("Get SQL Query from Config table started!");
                 using (SqlConnection con = new SqlConnection(ConnectionString))
                 {
                     SqlCommand cmd = new SqlCommand(configQuery, con);
@@ -249,7 +396,7 @@ namespace OffBoardingOnBoarding.Data
                     {
                         query = reader.GetValue(0).ToString();
                     }
-                    infoLogger.Info("Get Query from Config table completed!");
+                    infoLogger.Info("Get SQL Query from Config table completed!");
                 }
             }
             catch (Exception ex)
@@ -279,7 +426,7 @@ namespace OffBoardingOnBoarding.Data
                     {
                         previousSuccessfulRuntime = Convert.ToDateTime(reader.GetValue(0)).ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.CreateSpecificCulture("en-US"));
                     }
-                    
+
                     infoLogger.Info(string.Format("Get previousSuccessfulRuntime completed!-{0}", previousSuccessfulRuntime));
                 }
             }

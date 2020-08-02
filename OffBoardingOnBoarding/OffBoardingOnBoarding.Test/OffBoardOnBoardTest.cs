@@ -2,6 +2,7 @@
 using OffBoardingOnBoarding.Data;
 using OffBoardingOnBoarding.Lib;
 using log4net;
+using OffBoardingOnBoarding.DAL;
 
 namespace OffBoardingOnBoarding.Test
 {
@@ -11,8 +12,8 @@ namespace OffBoardingOnBoarding.Test
         [TestMethod]
         public void TestMethod1()
         {
-            FileGenerator f = new FileGenerator(new ReportFromOData(), new ReportFromSQL());
-            f.Generate();
+            FileGenerator f = new FileGenerator(new ReportFromOData(), new ReportFromSQL(new OffBoardOnBaordDAL()));
+            f.Generate();            
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using log4net;
+using OffBoardingOnBoarding.DAL;
 using OffBoardingOnBoarding.Data;
 using OffBoardingOnBoarding.Lib;
 
@@ -15,7 +16,7 @@ namespace OffBoardingOnBoardingProcess
             log4net.Config.XmlConfigurator.Configure();
             infoLogger.Info("OffBoardingOnBoarding report generation started!");
 
-            FileGenerator fileGenerator = new FileGenerator(new ReportFromOData(), new ReportFromSQL());
+            FileGenerator fileGenerator = new FileGenerator(new ReportFromOData(), new ReportFromSQL(new OffBoardOnBaordDAL()));
             fileGenerator.Generate();
 
             infoLogger.Info("OffBoardingOnBoarding report generation completed!");
