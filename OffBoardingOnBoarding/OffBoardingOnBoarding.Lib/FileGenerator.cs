@@ -57,7 +57,7 @@ namespace OffBoardingOnBoarding.Lib
         public void Generate()
         {
             infoLogger.Info(string.Format("Report being genereted from : {0}", DataSource));
-            var status = (DataSource == ODATAQUERY ? ReportFromOdata.Generate() : ReportFromSQL.Generatev2());
+            var status = (DataSource == ODATAQUERY ? ReportFromOdata.Generate() : ReportFromSQL.Generate());
 
         }
     }

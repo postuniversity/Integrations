@@ -24,7 +24,7 @@ namespace OffBoardingOnBoarding.DAL
         }
 
 
-        public int SaveOffBoardOnBoardStatusReport(string source, string starttime, string endtime, string comments, string status, string successfulruntime, int totalrecordcount, string outputfilename, string outputfilelocation, int userid)
+        public int SaveOffBoardOnBoardStatusReport(string source, string starttime, string endtime, string comments, string status, string successfulruntime/*, string ReportGenerationFromDate*/, int totalrecordcount, string outputfilename, string outputfilelocation, int userid)
         {
             //Insert SuccessfulRunTime in Table
             infoLogger.Info("Saving OffBoardOnBoardStatusReport started!");
@@ -40,6 +40,7 @@ namespace OffBoardingOnBoarding.DAL
                     cmd.Parameters.AddWithValue("@Comments", comments);
                     cmd.Parameters.AddWithValue("@Status", status);
                     cmd.Parameters.AddWithValue("@SuccessfulRuntime", successfulruntime);
+                    //cmd.Parameters.AddWithValue("@ReportGenerationFromDate", ReportGenerationFromDate);
                     cmd.Parameters.AddWithValue("@TotalRecordCount", totalrecordcount);
                     cmd.Parameters.AddWithValue("@OutputFileName", outputfilename);
                     cmd.Parameters.AddWithValue("@OutputFileLocation", outputfilelocation);
@@ -65,7 +66,7 @@ namespace OffBoardingOnBoarding.DAL
         /// @id int       
         /// </summary>
         /// <returns></returns>
-        public int UpdateOffBoardOnBoardStatusReport(string status, string comments, string successfultime, int totalRecordCount, string outputfilename, string outputfilelocation, string endtime, int id)
+        public int UpdateOffBoardOnBoardStatusReport(string status, string comments, string successfultime, /*string ReportGenerationFromDate,*/ int totalRecordCount, string outputfilename, string outputfilelocation, string endtime, int id)
         {
             infoLogger.Info("Update OffBoardOnBoardStatusReport started!");
             try
@@ -79,6 +80,7 @@ namespace OffBoardingOnBoarding.DAL
                     cmd.Parameters.AddWithValue("@status", status);
                     cmd.Parameters.AddWithValue("@comments", comments);
                     cmd.Parameters.AddWithValue("@successfulruntime", successfultime);
+                    //cmd.Parameters.AddWithValue("@ReportGenerationFromDate", successfultime);                    
                     cmd.Parameters.AddWithValue("@totalRecordCount", totalRecordCount);
                     cmd.Parameters.AddWithValue("@OutputFileName", outputfilename);
                     cmd.Parameters.AddWithValue("@OutputFileLocation", outputfilelocation);
