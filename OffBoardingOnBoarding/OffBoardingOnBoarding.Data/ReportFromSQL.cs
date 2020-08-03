@@ -86,25 +86,27 @@ namespace OffBoardingOnBoarding.Data
             try
             {
                 var reportgenerationtime = DateTime.Now;
-                var filename = String.Format(FileFolder + FileName, reportgenerationtime.ToString("yyyyMMddHHmmss", CultureInfo.CreateSpecificCulture("en-US")));
+                var filename = String.Format(FileName, reportgenerationtime.ToString("yyyyMMddHHmmss", CultureInfo.CreateSpecificCulture("en-US")));
+                var outputFile = String.Format(FileFolder + filename);
                 infoLogger.Info("saving OffBoardOnBoardStatusReport");
-                var runId = Isqldal.SaveOffBoardOnBoardStatusReport("sql", DateTime.Now.ToString(), string.Empty, "", "in-progress", string.Empty, 0, string.Empty, string.Empty, 1);
+                var runId = Isqldal.SaveOffBoardOnBoardStatusReport("sql", DateTime.Now.ToString(), string.Empty, "", "in-progress", string.Empty, 0 ,string.Empty,string.Empty, 1);
                 infoLogger.Info("saved OffBoardOnBoardStatusReport, runid :" + runId);
-
+                int totalRecordCount;
+                string generateReportOutput;
                 //get count from reader and save
                 //generate and save the report
                 if (runId > 0)
                 {                    
-                    var reportsaved = GenerateReport(filename);
+                    var reportsaved = GenerateReport(outputFile,out totalRecordCount,out generateReportOutput);
 
                     if (!reportsaved)
                     {
-                        Isqldal.UpdateOffBoardOnBoardStatusReport("Error", reportgenerationtime.ToString(), DateTime.Now.ToString(), runId);
+                        Isqldal.UpdateOffBoardOnBoardStatusReport("Error", generateReportOutput, reportgenerationtime.ToString(),0, filename, FileFolder, DateTime.Now.ToString(), runId);
                         errorLogger.Error(String.Format("Something went wrong in saving generating report : RUNID: {0}", runId));
                         return -1;
                     }
                     //update status
-                    Isqldal.UpdateOffBoardOnBoardStatusReport("completed", reportgenerationtime.ToString(), DateTime.Now.ToString(), runId);
+                    Isqldal.UpdateOffBoardOnBoardStatusReport("completed","Report Generated Successfully!", reportgenerationtime.ToString(), totalRecordCount, filename, FileFolder, DateTime.Now.ToString(), runId);
                     return 0;
                 }
                 errorLogger.Error(String.Format("Something went wrong in saving StudentStatusReport: RUNID: {0}",runId));
@@ -118,12 +120,13 @@ namespace OffBoardingOnBoarding.Data
         }
 
 
-        public bool GenerateReport(string filename)
+        public bool GenerateReport(string filename, out int totalRecordCount, out string generateReportOutput)
         {
             infoLogger.Info("GenerateReport started!");
             string fileHeader = string.Empty;
             var fileData = string.Empty;
-
+            totalRecordCount = 0;
+            generateReportOutput = string.Empty;
             try
             {
                 if (!Directory.Exists(FileFolder))
@@ -131,24 +134,25 @@ namespace OffBoardingOnBoarding.Data
                 
                 //get data from DB
                 var reader = Isqldal.GetOffBoardOnBoardStudents();
-
                 if (reader != null)
                 {
                     using (FileStream fs = new FileStream(filename, FileMode.CreateNew, FileAccess.ReadWrite))
                     {
                         using (StreamWriter sw = new StreamWriter(fs))
                         {
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                fileHeader = fileHeader + reader.GetName(i) + Delimeter;
+                            }
+
+                            fileHeader = fileHeader.Remove(fileHeader.Length - 1, 1) + Environment.NewLine;
+                            
+                            sw.Write(fileHeader);
+                            //Insert header(once) in the output file
                             while (reader.Read())
                             {
-                                for (int i = 0; i < reader.FieldCount; i++)
-                                {
-                                    fileHeader = fileHeader + reader.GetName(i) + Delimeter;
-                                }
-
-                                fileHeader = fileHeader.Remove(fileHeader.Length - 1, 1) + Environment.NewLine;
-                                //******************
-                                sw.Write(fileHeader);
-                                //******************
+                                //Write each line into the file [String cannot hold large memory]
+                                fileData = string.Empty;
                                 for (int i = 0; i < reader.FieldCount; i++)
                                 {
                                     //Check for advanced datatypes
@@ -162,19 +166,22 @@ namespace OffBoardingOnBoarding.Data
                                         fileData = fileData + reader.GetValue(i) + Delimeter;
                                 }
                                 //Write every row by removing last delimiter and move to next line
-                                fileData = fileData.Remove(fileData.Length - 1, 1) + Environment.NewLine;                                
+                                fileData = fileData.Remove(fileData.Length - 1, 1) + Environment.NewLine;
+                                totalRecordCount++;
+                                sw.Write(fileData);
                             }
-                            sw.Write(fileData);
                         }
                     }
-                    infoLogger.Info("GenerateReport completed!");
+                    infoLogger.Info(string.Format("GenerateReport completed!, #Total records Count : {0}", totalRecordCount));
                     return true;
                 }
-                infoLogger.Info("GenerateReport reader has no rows!");
+                generateReportOutput = "GenerateReport reader has no rows!";
+                infoLogger.Info(generateReportOutput);
                 return  false;
             }
             catch (Exception ex)
             {
+                generateReportOutput = ex.Message.ToString() ;
                 errorLogger.Error(String.Format("Something went wrong in GenerateReport: Exception {0}", ex.ToString()));
                 return false;
             }

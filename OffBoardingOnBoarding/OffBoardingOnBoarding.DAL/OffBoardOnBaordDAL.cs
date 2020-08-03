@@ -65,7 +65,7 @@ namespace OffBoardingOnBoarding.DAL
         /// @id int       
         /// </summary>
         /// <returns></returns>
-        public int UpdateOffBoardOnBoardStatusReport(string status, string successfultime, string endtime, int id)
+        public int UpdateOffBoardOnBoardStatusReport(string status, string comments, string successfultime, int totalRecordCount, string outputfilename, string outputfilelocation, string endtime, int id)
         {
             infoLogger.Info("Update OffBoardOnBoardStatusReport started!");
             try
@@ -77,7 +77,11 @@ namespace OffBoardingOnBoarding.DAL
                     //cmd.CommandText = "";
                     cmd.Parameters.AddWithValue("@id", id);
                     cmd.Parameters.AddWithValue("@status", status);
+                    cmd.Parameters.AddWithValue("@comments", comments);
                     cmd.Parameters.AddWithValue("@successfulruntime", successfultime);
+                    cmd.Parameters.AddWithValue("@totalRecordCount", totalRecordCount);
+                    cmd.Parameters.AddWithValue("@OutputFileName", outputfilename);
+                    cmd.Parameters.AddWithValue("@OutputFileLocation", outputfilelocation);
                     cmd.Parameters.AddWithValue("@endtime", endtime);
                     cmd.Connection.Open();
                     cmd.ExecuteNonQuery();
