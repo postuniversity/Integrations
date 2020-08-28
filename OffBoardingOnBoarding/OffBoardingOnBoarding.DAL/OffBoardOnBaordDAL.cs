@@ -100,7 +100,7 @@ namespace OffBoardingOnBoarding.DAL
             }
         }
 
-        public SqlDataReader GetOffBoardOnBoardStudents()
+        public SqlDataReader GetOffBoardOnBoardStudents(string successfulRunTime)
         {
             infoLogger.Info("GetOffBoardOnBoardStudents started!");
 
@@ -112,6 +112,7 @@ namespace OffBoardingOnBoarding.DAL
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     //cmd.CommandText = "customer.uspGetOffBoardOnBoardStudents";
+                    cmd.Parameters.AddWithValue("@reportgenerationtotime", successfulRunTime);
                     cmd.Connection.Open();
                     var reader = cmd.ExecuteReader(CommandBehavior.CloseConnection);
                     infoLogger.Info("GetOffBoardOnBoardStudents completed!");

@@ -71,6 +71,7 @@ namespace OffBoardingOnBoarding.Data
             try
             {
                 var reportgenerationtime = DateTime.Now;
+                var successfulRunTime= reportgenerationtime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CreateSpecificCulture("en-US"));
                 var outputFileName = String.Format(FileName, reportgenerationtime.ToString("yyyyMMddHHmmss", CultureInfo.CreateSpecificCulture("en-US")));
                 var outputFileLocation = String.Format(FileFolder + outputFileName);
                 int totalRecordCount;
@@ -78,24 +79,24 @@ namespace OffBoardingOnBoarding.Data
 
                 //step 1: save initial processing info
                 infoLogger.Info("saving OffBoardOnBoardStatusReport");
-                var runId = ISQLDAL.SaveOffBoardOnBoardStatusReport("sql", DateTime.Now.ToString(), string.Empty, "", INPROGRESS, string.Empty, 0 ,string.Empty,string.Empty, 1);
+                var runId = ISQLDAL.SaveOffBoardOnBoardStatusReport("sql", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CreateSpecificCulture("en-US")), string.Empty, "", INPROGRESS, string.Empty, 0 ,string.Empty,string.Empty, 1);
                 infoLogger.Info("saved OffBoardOnBoardStatusReport, runid :" + runId);                
                 
                 //
                 if (runId > 0)
                 { 
                     //step 2: Generate and Save report in folder
-                    var reportsaved = SaveReport(outputFileLocation,out totalRecordCount,out generateReportOutput);
+                    var reportsaved = SaveReport(successfulRunTime, outputFileLocation,out totalRecordCount,out generateReportOutput);
                     //step 3: ensure report is saved ad update info accordingly
                     if (!reportsaved)
                     {
                         //step 3.a
-                        ISQLDAL.UpdateOffBoardOnBoardStatusReport(ERROR, generateReportOutput, reportgenerationtime.ToString(),totalRecordCount, outputFileName, FileFolder, DateTime.Now.ToString(), runId);
+                        ISQLDAL.UpdateOffBoardOnBoardStatusReport(ERROR, generateReportOutput, successfulRunTime,totalRecordCount, outputFileName, FileFolder, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CreateSpecificCulture("en-US")), runId);
                         errorLogger.Error(String.Format("Something went wrong in saving generating report : RUNID: {0}", runId));
                         return -1;
                     }
                     //step 3.b update status
-                    ISQLDAL.UpdateOffBoardOnBoardStatusReport(COMPLETE, "Report Generated Successfully!", reportgenerationtime.ToString(), totalRecordCount, outputFileName, FileFolder, DateTime.Now.ToString(), runId);
+                    ISQLDAL.UpdateOffBoardOnBoardStatusReport(COMPLETE, "Report Generated Successfully!", successfulRunTime, totalRecordCount, outputFileName, FileFolder, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CreateSpecificCulture("en-US")), runId);
                     return 0;
                 }
                 errorLogger.Error(String.Format("Something went wrong in saving StudentStatusReport: RUNID: {0}",runId));
@@ -109,7 +110,7 @@ namespace OffBoardingOnBoarding.Data
         }
 
 
-        public bool SaveReport(string filename, out int totalRecordCount, out string generateReportOutput)
+        public bool SaveReport(string successfulRunTime, string filename, out int totalRecordCount, out string generateReportOutput)
         {
             infoLogger.Info("GenerateReport started!");
             string fileHeader = string.Empty;
@@ -123,7 +124,7 @@ namespace OffBoardingOnBoarding.Data
                     Directory.CreateDirectory(FileFolder);
                 
                 //get data from DB
-                var reader = ISQLDAL.GetOffBoardOnBoardStudents();
+                var reader = ISQLDAL.GetOffBoardOnBoardStudents(successfulRunTime);
 
                 if (reader != null)
                 {
