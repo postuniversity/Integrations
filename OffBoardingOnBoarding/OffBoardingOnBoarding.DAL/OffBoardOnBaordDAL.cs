@@ -35,11 +35,11 @@ namespace OffBoardingOnBoarding.DAL
                     SqlCommand cmd = new SqlCommand("customer.SaveOffBoardOnBoardStatusReport",con);
                     cmd.CommandType = System.Data.CommandType.StoredProcedure;                    
                     cmd.Parameters.AddWithValue("@Source", source);
-                    cmd.Parameters.AddWithValue("@StartTime", starttime);
-                    cmd.Parameters.AddWithValue("@EndTime", endtime);
+                    cmd.Parameters.AddWithValue("@TransactionStartTime", starttime);
+                    cmd.Parameters.AddWithValue("@TransactionEndTime", endtime);
                     cmd.Parameters.AddWithValue("@Comments", comments);
                     cmd.Parameters.AddWithValue("@Status", status);
-                    cmd.Parameters.AddWithValue("@SuccessfulRuntime", successfulruntime);
+                    cmd.Parameters.AddWithValue("@ReportGenerationToDate", successfulruntime);
                     //cmd.Parameters.AddWithValue("@ReportGenerationFromDate", ReportGenerationFromDate);
                     cmd.Parameters.AddWithValue("@TotalRecordCount", totalrecordcount);
                     cmd.Parameters.AddWithValue("@OutputFileName", outputfilename);
@@ -79,12 +79,12 @@ namespace OffBoardingOnBoarding.DAL
                     cmd.Parameters.AddWithValue("@id", id);
                     cmd.Parameters.AddWithValue("@status", status);
                     cmd.Parameters.AddWithValue("@comments", comments);
-                    cmd.Parameters.AddWithValue("@successfulruntime", successfultime);
+                    cmd.Parameters.AddWithValue("@ReportGenerationToDate", successfultime);
                     //cmd.Parameters.AddWithValue("@ReportGenerationFromDate", successfultime);                    
                     cmd.Parameters.AddWithValue("@totalRecordCount", totalRecordCount);
                     cmd.Parameters.AddWithValue("@OutputFileName", outputfilename);
                     cmd.Parameters.AddWithValue("@OutputFileLocation", outputfilelocation);
-                    cmd.Parameters.AddWithValue("@endtime", endtime);
+                    cmd.Parameters.AddWithValue("@Transactionendtime", endtime);
                     cmd.Connection.Open();
                     cmd.ExecuteNonQuery();
                 }
@@ -112,7 +112,7 @@ namespace OffBoardingOnBoarding.DAL
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     //cmd.CommandText = "customer.uspGetOffBoardOnBoardStudents";
-                    cmd.Parameters.AddWithValue("@reportgenerationtotime", successfulRunTime);
+                    cmd.Parameters.AddWithValue("@reportGenerationToDate", successfulRunTime);
                     cmd.Connection.Open();
                     var reader = cmd.ExecuteReader(CommandBehavior.CloseConnection);
                     infoLogger.Info("GetOffBoardOnBoardStudents completed!");

@@ -2,13 +2,13 @@
 CREATE TABLE [customer].[OffBoardOnBoardStatusReport](
 	[Id] [int] IDENTITY(1,1) NOT NULL,
 	[Source] [varchar](50) NOT NULL,
-	[StartTime] [datetime] NOT NULL,
-	[EndTime] [datetime] NULL,
-	[Comments] [ntext] NULL,
-	[Status] [varchar](50) NOT NULL,
-	[SuccessfulRuntime] [datetime] NULL,
+	[TransactionStartTime] [datetime] NOT NULL,
+	[TransactionEndTime] [datetime] NULL,
 	[ReportGenerationFromDate] [datetime] NULL,
+	[ReportGenerationToDate] [datetime] NULL,
+	[Status] [varchar](50) NOT NULL,
 	[TotalRecordCount] [int] NULL,
+	[Comments] [ntext] NULL,
 	[OutputFileName] [varchar](2500) NULL,
 	[OutputFileLocation] [varchar](2500) NULL,
 	[UserId] [int] NOT NULL,
@@ -24,11 +24,11 @@ GO
 --Insert into [Customer.OffBoardOnBoardStatusReport] table using SP
  CREATE PROCEDURE [customer].[SaveOffBoardOnBoardStatusReport]   
      @Source varchar(50),-- sql or odata  
-     @StartTime varchar(50), -- convert to datetie when inserting  
-     @EndTime varchar(50) , -- convert to datetime when inserting  
+     @TransactionStartTime varchar(50), -- convert to datetie when inserting  
+     @TransactionEndTime varchar(50) , -- convert to datetime when inserting  
      @Comments ntext , -- additional details like sql query or odataurl  
      @Status varchar(50) , -- status completed or error  
-     @SuccessfulRuntime varchar(50), -- last successful runtime (should be same as ReportGenerationFromDate)  
+     @ReportGenerationToDate varchar(50), -- last successful runtime (should be same as ReportGenerationFromDate)  
      @TotalRecordCount int, -- no of records in report  
      @OutputFileName varchar (250), --   
      @OutputFileLocation varchar(2500), --   
@@ -40,27 +40,27 @@ GO
    declare @dt datetime;  
    declare @ReportGenerationFromDate datetime;  
   
-       if isnull(@SuccessfulRuntime,'')= ''    
+       if isnull(@ReportGenerationToDate,'')= ''    
       begin  
-         set  @SuccessfulRuntime = null;  
-      set  @EndTime = null ;  
-      select @ReportGenerationFromDate = DateAdd(yy,-1,successfulruntime)  
+         set  @ReportGenerationToDate = null;  
+      set  @TransactionEndTime = null ;  
+      select @ReportGenerationFromDate = DateAdd(yy,-1,ReportGenerationToDate)  
      from customer.offboardonboardstatusreport   
        where id = (select max(id)   
            from customer.offboardonboardstatusreport   
            where [STATUS] = 'completed');  
     if isnull(@ReportGenerationFromDate,'')= ''  
-      set @ReportGenerationFromDate = DateAdd(yy,-1,GETDATE());  
+      set @ReportGenerationFromDate = ''--DateAdd(yy,-1,GETDATE());  
   
       end  
       
-     INSERT INTO  OffBoardOnBoardStatusReport([Source],[StartTime],[EndTime],[Comments],[Status],[SuccessfulRuntime],[TotalRecordCount],[OutputFileName], [OutputFileLocation], [UserId],[DateAdded],[DateLstMod],[ReportGenerationFromDate])  
+     INSERT INTO  OffBoardOnBoardStatusReport([Source],[TransactionStartTime],[TransactionEndTime],[Comments],[Status],[ReportGenerationToDate],[TotalRecordCount],[OutputFileName], [OutputFileLocation], [UserId],[DateAdded],[DateLstMod],[ReportGenerationFromDate])  
       VALUES (@Source,  
-        CAST(@StartTime as DateTime),  
-        CAST(@EndTime as DateTime),  
+        CAST(@TransactionStartTime as DateTime),  
+        CAST(@TransactionEndTime as DateTime),  
         @Comments,  
         @Status,  
-        CAST(@SuccessfulRuntime as datetime),  
+        CAST(@ReportGenerationToDate as datetime),  
         @TotalRecordCount,  
         @OutputFileName,  
         @OutputFileLocation,  
@@ -80,17 +80,18 @@ GO
          @id int,
 		 @Comments NVARCHAR(MAX),
 		 @Status varchar(50), -- error? inprogress,completed   
-		 @successfulruntime varchar(50),   --@ReportGenerationFromDate varchar(50),      
+		 @reportGenerationToDate varchar(50),   
+		 --@ReportGenerationFromDate varchar(50),      
 		 @totalRecordCount int,      @outputfileName varchar(50),     
          @outputfileLocation varchar(2500),      
-		 @endtime varchar(50)     AS      SET NOCOUNT ON;         
+		 @transactionendtime varchar(50)     AS      SET NOCOUNT ON;         
   update OffBoardOnBoardStatusReport      
 	set [status] = @status,          
 	    [Comments]=@Comments,     
-        [successfulruntime] = cast (@successfulruntime as datetime), --  getdate(),    
+        [ReportGenerationToDate] = cast (@reportGenerationToDate as datetime), --  getdate(),    
 		--[ReportGenerationFromDate] = cast(@ReportGenerationFromDate as datetime),       
 		[totalRecordCount] = @totalRecordCount,       
-		[endtime] = cast(@endtime as datetime), --   getdate() ,       
+		[TransactionEndtime] = cast(@transactionendtime as datetime), --   getdate() ,       
 		[OutputFileName]=@outputfileName,       
 		[OutputFileLocation]=@outputfileLocation,       
 		DateLstMod = getdate()      
@@ -128,7 +129,7 @@ GROUP BY SS.SyStudentId,SS.SySchoolStatusID,SS.FullName,ss.email,sysc.code
 
 --Get daily report using SP
 CREATE PROCEDURE Customer.uspGetOffBoardOnBoardStudents     
-  @reportGenerationToTime varchar(50)      
+  @reportGenerationToDate varchar(50)      
    AS       
      SET NOCOUNT ON;      
            
@@ -143,18 +144,18 @@ CREATE PROCEDURE Customer.uspGetOffBoardOnBoardStudents
    -- first run - get from today      
    if ( @maxid = 0)      
      select * from customer.vw_OffBoardOnBoardStudents s      
-       where StatusDate <= DateAdd(yy,-1,CAST(@reportGenerationToTime AS Datetime))      
+       where StatusDate <= DateAdd(yy,-1,CAST(@reportGenerationToDate AS Datetime))      
           
       else --  not the first run, get the last successfule runtime      
     begin       
-     select @lastReportGeneratedDate = DateAdd(yy,-1,SuccessfulRuntime)      
+     select @lastReportGeneratedDate = DateAdd(yy,-1,ReportGenerationToDate)      
       from customer.offboardonboardstatusreport       
           where id = @maxid;           
          
              -- get students       
      -- print '@lastReporteGeneratedDate :' + convert(varchar(24),@lastReporteGeneratedDate,121)      
     select * from customer.vw_OffBoardOnBoardStudents s      
-    where StatusDate >= @lastReportGeneratedDate and StatusDate <= DateAdd(yy,-1,CAST(@reportGenerationToTime AS Datetime));      
+    where StatusDate >= @lastReportGeneratedDate and StatusDate <= DateAdd(yy,-1,CAST(@reportGenerationToDate AS Datetime));      
     end;      
              
   RETURN   

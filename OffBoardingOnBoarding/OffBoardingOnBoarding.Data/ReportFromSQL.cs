@@ -15,9 +15,9 @@ namespace OffBoardingOnBoarding.Data
         //Declaring logger
         public static readonly ILog infoLogger = LogManager.GetLogger("log4net-default-repository", "InfoLogFile");
         public static readonly ILog errorLogger = LogManager.GetLogger("log4net-default-repository", "ErrorLogFile");
-        private static readonly string COMPLETE = "completed";
-        private static readonly string ERROR = "error";
-        private static readonly string INPROGRESS = "in-progress";
+        private static readonly string OK = "OK";
+        private static readonly string ERROR = "Error";
+        private static readonly string INPROGRESS = "In-Progress";
 
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace OffBoardingOnBoarding.Data
                         return -1;
                     }
                     //step 3.b update status
-                    ISQLDAL.UpdateOffBoardOnBoardStatusReport(COMPLETE, "Report Generated Successfully!", successfulRunTime, totalRecordCount, outputFileName, FileFolder, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CreateSpecificCulture("en-US")), runId);
+                    ISQLDAL.UpdateOffBoardOnBoardStatusReport(OK, "Report Generated Successfully!", successfulRunTime, totalRecordCount, outputFileName, FileFolder, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CreateSpecificCulture("en-US")), runId);
                     return 0;
                 }
                 errorLogger.Error(String.Format("Something went wrong in saving StudentStatusReport: RUNID: {0}",runId));
