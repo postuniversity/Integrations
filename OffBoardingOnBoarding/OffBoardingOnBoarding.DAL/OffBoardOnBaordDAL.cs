@@ -24,7 +24,7 @@ namespace OffBoardingOnBoarding.DAL
         }
 
 
-        public int SaveOffBoardOnBoardStatusReport(string source, string starttime, string endtime, string comments, string status, string successfulruntime/*, string ReportGenerationFromDate*/, int totalrecordcount, string outputfilename, string outputfilelocation, int userid)
+        public int SaveOffBoardOnBoardStatusReport(string source, string starttime, string endtime, string comments, string status, string reportGenerationToDate, int totalrecordcount, string outputfilename, string outputfilelocation, int userid)
         {
             //Insert SuccessfulRunTime in Table
             infoLogger.Info("Saving OffBoardOnBoardStatusReport started!");
@@ -39,8 +39,7 @@ namespace OffBoardingOnBoarding.DAL
                     cmd.Parameters.AddWithValue("@TransactionEndTime", endtime);
                     cmd.Parameters.AddWithValue("@Comments", comments);
                     cmd.Parameters.AddWithValue("@Status", status);
-                    cmd.Parameters.AddWithValue("@ReportGenerationToDate", successfulruntime);
-                    //cmd.Parameters.AddWithValue("@ReportGenerationFromDate", ReportGenerationFromDate);
+                    cmd.Parameters.AddWithValue("@ReportGenerationToDate", reportGenerationToDate);
                     cmd.Parameters.AddWithValue("@TotalRecordCount", totalrecordcount);
                     cmd.Parameters.AddWithValue("@OutputFileName", outputfilename);
                     cmd.Parameters.AddWithValue("@OutputFileLocation", outputfilelocation);
@@ -66,7 +65,7 @@ namespace OffBoardingOnBoarding.DAL
         /// @id int       
         /// </summary>
         /// <returns></returns>
-        public int UpdateOffBoardOnBoardStatusReport(string status, string comments, string successfultime, /*string ReportGenerationFromDate,*/ int totalRecordCount, string outputfilename, string outputfilelocation, string endtime, int id)
+        public int UpdateOffBoardOnBoardStatusReport(string status, string comments, string reportGenerationToDate, int totalRecordCount, string outputfilename, string outputfilelocation, string endtime, int id)
         {
             infoLogger.Info("Update OffBoardOnBoardStatusReport started!");
             try
@@ -79,8 +78,7 @@ namespace OffBoardingOnBoarding.DAL
                     cmd.Parameters.AddWithValue("@id", id);
                     cmd.Parameters.AddWithValue("@status", status);
                     cmd.Parameters.AddWithValue("@comments", comments);
-                    cmd.Parameters.AddWithValue("@ReportGenerationToDate", successfultime);
-                    //cmd.Parameters.AddWithValue("@ReportGenerationFromDate", successfultime);                    
+                    cmd.Parameters.AddWithValue("@ReportGenerationToDate", reportGenerationToDate);
                     cmd.Parameters.AddWithValue("@totalRecordCount", totalRecordCount);
                     cmd.Parameters.AddWithValue("@OutputFileName", outputfilename);
                     cmd.Parameters.AddWithValue("@OutputFileLocation", outputfilelocation);
@@ -100,7 +98,7 @@ namespace OffBoardingOnBoarding.DAL
             }
         }
 
-        public SqlDataReader GetOffBoardOnBoardStudents(string successfulRunTime)
+        public SqlDataReader GetOffBoardOnBoardStudents(string reportGenerationToDate)
         {
             infoLogger.Info("GetOffBoardOnBoardStudents started!");
 
@@ -112,7 +110,7 @@ namespace OffBoardingOnBoarding.DAL
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     //cmd.CommandText = "customer.uspGetOffBoardOnBoardStudents";
-                    cmd.Parameters.AddWithValue("@reportGenerationToDate", successfulRunTime);
+                    cmd.Parameters.AddWithValue("@reportGenerationToDate", reportGenerationToDate);
                     cmd.Connection.Open();
                     var reader = cmd.ExecuteReader(CommandBehavior.CloseConnection);
                     infoLogger.Info("GetOffBoardOnBoardStudents completed!");

@@ -70,9 +70,9 @@ namespace OffBoardingOnBoarding.Data
         {          
             try
             {
-                var reportgenerationtime = DateTime.Now;
-                var successfulRunTime= reportgenerationtime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CreateSpecificCulture("en-US"));
-                var outputFileName = String.Format(FileName, reportgenerationtime.ToString("yyyyMMddHHmmss", CultureInfo.CreateSpecificCulture("en-US")));
+                var reportGenerationTime = DateTime.Now;
+                var reportGenerationToDate = reportGenerationTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CreateSpecificCulture("en-US"));
+                var outputFileName = String.Format(FileName, reportGenerationTime.ToString("yyyyMMddHHmmss", CultureInfo.CreateSpecificCulture("en-US")));
                 var outputFileLocation = String.Format(FileFolder + outputFileName);
                 int totalRecordCount;
                 string generateReportOutput;
@@ -86,17 +86,17 @@ namespace OffBoardingOnBoarding.Data
                 if (runId > 0)
                 { 
                     //step 2: Generate and Save report in folder
-                    var reportsaved = SaveReport(successfulRunTime, outputFileLocation,out totalRecordCount,out generateReportOutput);
+                    var reportsaved = SaveReport(reportGenerationToDate, outputFileLocation,out totalRecordCount,out generateReportOutput);
                     //step 3: ensure report is saved ad update info accordingly
                     if (!reportsaved)
                     {
                         //step 3.a
-                        ISQLDAL.UpdateOffBoardOnBoardStatusReport(ERROR, generateReportOutput, successfulRunTime,totalRecordCount, outputFileName, FileFolder, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CreateSpecificCulture("en-US")), runId);
+                        ISQLDAL.UpdateOffBoardOnBoardStatusReport(ERROR, generateReportOutput, reportGenerationToDate,totalRecordCount, outputFileName, FileFolder, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CreateSpecificCulture("en-US")), runId);
                         errorLogger.Error(String.Format("Something went wrong in saving generating report : RUNID: {0}", runId));
                         return -1;
                     }
                     //step 3.b update status
-                    ISQLDAL.UpdateOffBoardOnBoardStatusReport(OK, "Report Generated Successfully!", successfulRunTime, totalRecordCount, outputFileName, FileFolder, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CreateSpecificCulture("en-US")), runId);
+                    ISQLDAL.UpdateOffBoardOnBoardStatusReport(OK, "Report Generated Successfully!", reportGenerationToDate, totalRecordCount, outputFileName, FileFolder, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CreateSpecificCulture("en-US")), runId);
                     return 0;
                 }
                 errorLogger.Error(String.Format("Something went wrong in saving StudentStatusReport: RUNID: {0}",runId));
@@ -110,7 +110,7 @@ namespace OffBoardingOnBoarding.Data
         }
 
 
-        public bool SaveReport(string successfulRunTime, string filename, out int totalRecordCount, out string generateReportOutput)
+        public bool SaveReport(string reportGenerationToDate, string filename, out int totalRecordCount, out string generateReportOutput)
         {
             infoLogger.Info("GenerateReport started!");
             string fileHeader = string.Empty;
@@ -124,7 +124,7 @@ namespace OffBoardingOnBoarding.Data
                     Directory.CreateDirectory(FileFolder);
                 
                 //get data from DB
-                var reader = ISQLDAL.GetOffBoardOnBoardStudents(successfulRunTime);
+                var reader = ISQLDAL.GetOffBoardOnBoardStudents(reportGenerationToDate);
 
                 if (reader != null)
                 {
@@ -132,6 +132,7 @@ namespace OffBoardingOnBoarding.Data
                     {
                         using (StreamWriter sw = new StreamWriter(fs))
                         {
+                            //Insert header(once) in the output file
                             for (int i = 0; i < reader.FieldCount; i++)
                             {
                                 fileHeader = fileHeader + reader.GetName(i) + Delimeter;
@@ -140,7 +141,7 @@ namespace OffBoardingOnBoarding.Data
                             fileHeader = fileHeader.Remove(fileHeader.Length - 1, 1) + Environment.NewLine;
                             
                             sw.Write(fileHeader);
-                            //Insert header(once) in the output file
+                            
                             while (reader.Read())
                             {
                                 //Write each line into the file [String cannot hold large memory]
