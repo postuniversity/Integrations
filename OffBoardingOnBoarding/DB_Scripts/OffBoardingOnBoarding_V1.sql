@@ -48,7 +48,7 @@ GO
      from customer.offboardonboardstatusreport       
        where id = (select max(id)       
            from customer.offboardonboardstatusreport       
-           where [STATUS] = 'OK');      
+           where [STATUS] = 'Completed');      
     if isnull(@ReportGenerationFromDate,'')= ''      
       set @ReportGenerationFromDate = ''     
       
@@ -79,7 +79,7 @@ GO
  CREATE PROCEDURE [customer].[UpdateOffBoardOnBoardStatusReport]                
    @id int,  
    @Comments NVARCHAR(MAX),  
-   @Status varchar(50), -- Error,Inprogress,OK     
+   @Status varchar(50), -- Started, Completed, Failed
    @reportGenerationToDate varchar(50),         
    @totalRecordCount int,      
    @outputfileName varchar(50),       
@@ -103,30 +103,32 @@ GO
 CREATE view [customer].vw_OffBoardOnBoardStudents  
   
   AS   
-    SELECT   
-         SS.SyStudentId,  
-  
-          SS.SySchoolStatusId,  
-  
-          FullName,  
-  
-          ss.email,  
-  
-          sysc.code,  
-  
-          max(AD.StatusDate) as statusdate  
-  
-FROM SyStudent SS (NOLOCK)  
-  
-LEFT JOIN AdEnroll AD (NOLOCK) ON SS.SyStudentId=AD.SyStudentID  
-  
-inner join syschoolstatus sysc (NOLOCK) on sysc.syschoolstatusid = ss.syschoolstatusid  
-  
-WHERE SS.SySchoolStatusID IN (10,11,17,51,67,66,86)  
-  
-GROUP BY SS.SyStudentId,SS.SySchoolStatusID,SS.FullName,ss.email,sysc.code  
- 
- GO 
+    SELECT     
+         SS.SyStudentId,    
+    
+          SS.SySchoolStatusId,    
+    
+          SS.FirstName,
+		  
+		  SS.LastName,    
+    
+          ss.Email,    
+    
+          sysc.Code,    
+    
+          max(AD.StatusDate) as StatusDate    
+    
+FROM SyStudent SS (NOLOCK)    
+    
+LEFT JOIN AdEnroll AD (NOLOCK) ON SS.SyStudentId=AD.SyStudentID    
+    
+inner join syschoolstatus sysc (NOLOCK) on sysc.syschoolstatusid = ss.syschoolstatusid    
+    
+WHERE SS.SySchoolStatusID IN (10,11,17,51,67,66,86)    
+    
+GROUP BY SS.SyStudentId,SS.SySchoolStatusID,SS.FirstName,SS.LastName,ss.email,sysc.code
+
+GO
 
 --Get daily report using SP
 CREATE PROCEDURE Customer.uspGetOffBoardOnBoardStudents     
@@ -140,7 +142,7 @@ CREATE PROCEDURE Customer.uspGetOffBoardOnBoardStudents
      -- get most recent id (for first run it will be 0)      
      select  @maxid = coalesce(max(id),0)       
       from customer.offboardonboardstatusreport       
-       where [status] = 'OK';      
+       where [status] = 'Completed';      
       
    -- first run - get from today      
    if ( @maxid = 0)      
